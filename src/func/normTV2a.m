@@ -7,7 +7,7 @@ else
 end
 
 grad = L(x);
-norm = alpha*sum(sum(abs(grad(1:3,:,:,:)),1) + (1-alpha)*sum(abs(grad(4:6,:,:,:)),1),[2,3,4]) + indicator(x);
+norm = alpha*sum(sqrt(sum(grad(1,:,:,:,:).^2,5)),[2,3,4]) + (1-alpha)*sum(sqrt(sum(grad(2,:,:,:,:).^2,5)),[2,3,4]) + indicator(x);
 
 end
 

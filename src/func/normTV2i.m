@@ -7,7 +7,7 @@ else
 end
 
 grad = L(x);
-val = alpha*sum(sqrt(sum(grad(1:3,:,:,:).^2,1)) + (1-alpha)*sqrt(sum(grad(4:6,:,:,:).^2,1)),[2,3,4]) + indicator(x);
+val = alpha*sum(sqrt(sum(grad(1,:,:,:,:).^2,[2,3,4,5]))) + (1-alpha)*sum(sqrt(sum(grad(2,:,:,:,:).^2,[2,3,4,5]))) + indicator(x); 
 
 end
 

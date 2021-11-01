@@ -7,7 +7,7 @@ else
 end
 
 grad = L(x);
-val = sum(sqrt(sum(grad.^2,1)),[2,3,4]) + indicator(x);
+val = sum(sqrt(sum(grad.^2,[1,5])),[2,3,4]) + indicator(x);
 
 end
 

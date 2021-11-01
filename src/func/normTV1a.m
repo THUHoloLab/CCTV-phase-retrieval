@@ -7,7 +7,7 @@ else
 end
 
 grad = L(x);
-norm = sum(sum(abs(grad),1),[2,3,4]) + indicator(x);
+norm = sum(sqrt(sum(grad.^2,1)),[2,3,4,5]) + indicator(x);
 
 end
 
