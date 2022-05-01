@@ -1,4 +1,4 @@
-function [ w_o ] = propagate( w_i, dist, pxsize, wavlen, method )
+                                                                                                                                               function [ w_o ] = propagate( w_i, dist, pxsize, wavlen, method )
 
 [N,M] = size(w_i);    % size of the wavefront
 
