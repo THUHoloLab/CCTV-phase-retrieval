@@ -30,12 +30,6 @@ params.wavlen = 0.5e-3;                 % wavelength (mm)
 params.method = 'Angular Spectrum';     % numerical method
 params.dist   = 5;                      % imaging distance (mm)
 
-% check model correctness
-dist_crit = 2*max([size(x,1),size(x,2)])*params.pxsize^2/params.wavlen;
-if dist_crit < params.dist
-    error('Angular spectrum not applicable')
-end
-
 % zero-pad the object to avoid convolution artifacts
 kernelsize = params.dist*params.wavlen/params.pxsize/2; % diffraction kernel size
 nullpixels = ceil(kernelsize / params.pxsize);          % number of padding pixels
