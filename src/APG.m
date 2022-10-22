@@ -1,4 +1,4 @@
-function [x,J_vals,E_vals,runtimes] = fista(x_init,F,dF,R,proxR,gamma,n_iters,opts)
+function [x,J_vals,E_vals,runtimes] = APG(x_init,F,dF,R,proxR,gamma,n_iters,opts)
 % initialization
 x = x_init;
 z = x;

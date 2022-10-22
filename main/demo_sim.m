@@ -98,7 +98,7 @@ myR     = @(x) CCTV(x,lam);                     % regularization function
 myproxR = @(x,gam) prox(x,gam,lam,n_subiters);  % proximal operator for the regularization function
 
 % run the algorithm
-[x_est,J_vals,E_vals,runtimes] = fista(x_init,myF,mydF,myR,myproxR,gam,n_iters,opts);
+[x_est,J_vals,E_vals,runtimes] = APG(x_init,myF,mydF,myR,myproxR,gam,n_iters,opts);     % accelerated proximal gradient algorithm
 
 %%
 % =========================================================================
