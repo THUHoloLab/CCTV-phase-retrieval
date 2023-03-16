@@ -4,6 +4,12 @@
 % This code provides a simple demonstration of compressive phase retrieval
 % via constrained complex total variation (CCTV) regularization.
 %
+% Reference:
+%   - Y. Gao and L. Cao, ¡°Iterative projection meets sparsity 
+%     regularization: towards practical single-shot quantitative phase 
+%     imaging with in-line holography,¡± Light: Advanced Manufacturing 4, 
+%     1-17 (2023).
+%
 % Author: Yunhui Gao (gyh21@mails.tsinghua.edu.cn)
 % =========================================================================
 %% generate data
@@ -15,13 +21,13 @@ addpath(genpath('./utils'))
 addpath(genpath('../src'))
 
 % load experimental data
-group_num = 3;
+group_num = 1;
 img_bg  = im2double(rgb2gray(imread(['../data/experiment/E',num2str(group_num),'/bg.bmp'])));
 img_obj = im2double(rgb2gray(imread(['../data/experiment/E',num2str(group_num),'/obj.bmp'])));
 load(['../data/experiment/E',num2str(group_num),'/params.mat'])
 
 % normalization of the hologram
-y = img_obj./mean(mean(img_bg));
+y = img_obj./mean(img_bg(:));
 
 % select area of interest for reconstruction
 figure

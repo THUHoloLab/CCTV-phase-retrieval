@@ -4,6 +4,12 @@
 % This code provides a simple demonstration of compressive phase retrieval
 % via constrained complex total variation (CCTV) regularization.
 %
+% Reference:
+%   - Y. Gao and L. Cao, ¡°Iterative projection meets sparsity 
+%     regularization: towards practical single-shot quantitative phase 
+%     imaging with in-line holography,¡± Light: Advanced Manufacturing 4, 
+%     1-17 (2023).
+% 
 % Author: Yunhui Gao (gyh21@mails.tsinghua.edu.cn)
 % =========================================================================
 %%
