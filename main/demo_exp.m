@@ -8,11 +8,14 @@
 %   - Y. Gao and L. Cao, "Iterative projection meets sparsity 
 %     regularization: towards practical single-shot quantitative phase 
 %     imaging with in-line holography," Light: Advanced Manufacturing 4, 
-%     1-17 (2023).
+%     6 (2023).
 %
 % Author: Yunhui Gao (gyh21@mails.tsinghua.edu.cn)
 % =========================================================================
-%% generate data
+%%
+% =========================================================================
+% Data generation
+% =========================================================================
 clear;clc;
 close all;
 
