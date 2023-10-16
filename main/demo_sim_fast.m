@@ -19,12 +19,8 @@
 clear;clc
 close all
 
-% load functions
-addpath(genpath('./utils'))
-addpath(genpath('../src'))
-
 % load test image
-n = 1024;
+n = 256;
 img = imresize(im2double(imread('../data/simulation/cameraman.bmp')),[n,n]);
 
 % sample
@@ -34,26 +30,30 @@ x = exp(1i*pi*img);
 params.pxsize = 5e-3;                   % pixel size (mm)
 params.wavlen = 0.5e-3;                 % wavelength (mm)
 params.method = 'Angular Spectrum';     % numerical method
-params.dist   = 20;                     % imaging distance (mm)
+params.dist   = 5;                      % imaging distance (mm)
 
 % zero-pad the object to avoid convolution artifacts
 kernelsize = params.dist*params.wavlen/params.pxsize/2; % diffraction kernel size
 nullpixels = ceil(kernelsize / params.pxsize);          % number of padding pixels
 x = zeropad(x,nullpixels);                              % zero-padded sample
 
+% pre-calculate the convolution kernels for diffraction modeling
+H_f = fftshift(transfunc(size(x,1),size(x,2), params.dist,params.pxsize,params.wavlen,params.method)); % forward propagation
+H_b = fftshift(transfunc(size(x,1),size(x,2),-params.dist,params.pxsize,params.wavlen,params.method)); % backward propagation
+
 % forward model
-Q  = @(x) propagate(x,params.dist,params.pxsize,params.wavlen,params.method);   % forward propagation
-QH = @(x) propagate(x,-params.dist,params.pxsize,params.wavlen,params.method);  % Hermitian of Q: backward propagation
+Q  = @(x) ifft2(fft2(x).*H_f);      % forward propagation
+QH = @(x) ifft2(fft2(x).*H_b);      % Hermitian of Q: backward propagation
 C  = @(x) imgcrop(x,nullpixels);    % image cropping operation (to model the finite size of the sensor area)
 CT = @(x) zeropad(x,nullpixels);    % transpose of C: zero-padding operation
 A  = @(x) C(Q(x));                  % overall sampling operation
 AH = @(x) QH(CT(x));                % Hermitian of A
 
 % generate data
-rng(0)              % random seed, for reproducibility
-noisevar = 0.01;    % noise level
-y = abs(A(x)).^2;
-y = y.*(1 + noisevar*randn(size(y)));      % Gaussian noise
+rng(0)                                  % random seed, for reproducibility
+noisevar = 0.01;                        % noise level
+y = abs(A(x)).^2;                       % intensity measurement
+y = y.*(1 + noisevar*randn(size(y)));   % add noise
 
 % display
 figure
@@ -72,14 +72,13 @@ title('Intensity measurement','interpreter','latex','fontsize',12)
 
 clear functions     % release memory (if using puma)
 
+gpu = true;         % whether using GPU or not
+
 % define the constraint
-global constraint
-constraint = 'as';  % 'none': no constraint, 'a': absorption constraint only, 
-                    % 's': support constraint only, 'as': absorption + support constraints
-global absorption   % define the upper bound for the modulus
-absorption = 1;
-global support      % define the support region
-support = zeros(size(x));
+constraint = 'none';          % 'none': no constraint, 'a': absorption constraint only, 
+                            % 's': support constraint only, 'as': absorption + support constraints
+absorption = 1;             % define the upper bound for the modulus
+support = zeros(size(x));   % define the support region
 support(nullpixels+1:nullpixels+n,nullpixels+1:nullpixels+n) = 1;
 
 % region for computing the errors
@@ -89,26 +88,89 @@ region.y1 = nullpixels+1;
 region.y2 = nullpixels+n;
 
 % algorithm settings
-x_init = AH(sqrt(y));   % initial guess
+x_est = AH(sqrt(y));    % initial guess
 lam = 2e-3;             % regularization parameter
 gam = 2;                % step size (see the paper for details)
 
-n_iters    = 300;       % number of iterations (main loop)
+n_iters    = 200;       % number of iterations (main loop)
 n_subiters = 1;         % number of iterations (denoising)
 
 % options
-opts.verbose = true;                                % print status during the iterations
-opts.errfunc = @(z) relative_error_2d(z,x,region);  % user-defined error metrics
-opts.display = true;                                % display intermediate results during the iterations
-opts.autosave = false;                              % save the intermediate results
+opts.verbose = true;                                % display status during the iterations
+opts.display = true;
+opts.autosave = false;
 
-myF     = @(x) F(x,y,A);                        % fidelity function 
-mydF    = @(x) dF(x,y,A,AH);                    % gradient of the fidelity function
-myR     = @(x) CCTV(x,lam);                     % regularization function
-myproxR = @(x,gam) prox(x,gam,lam,n_subiters);  % proximal operator for the regularization function
+% auxilary variables
+z_est = x_est;
+v_est = zeros(size(x_est,1),size(x_est,2),2);
+w_est = zeros(size(x_est,1),size(x_est,2),2);
 
-% run the algorithm
-[x_est,J_vals,E_vals,runtimes] = APG(x_init,myF,mydF,myR,myproxR,gam,n_iters,opts);     % accelerated proximal gradient algorithm
+% initialize GPU
+if gpu
+    device  = gpuDevice();
+    x_est   = gpuArray(x_est);
+    y       = gpuArray(y);
+    H_f     = gpuArray(H_f);
+    H_b     = gpuArray(H_b);
+    support = gpuArray(support);
+    z_est   = gpuArray(z_est);
+    v_est   = gpuArray(v_est);
+    w_est   = gpuArray(w_est);
+end
+
+% define the fast projection operator
+if strcmpi(constraint,'none')
+    projf = @(x) x;
+elseif strcmpi(constraint,'a')
+    projf = @(x) min(abs(x),absorption).*exp(1i*angle(x));
+elseif strcmpi(constraint,'s')
+    projf = @(x) x.*support;
+elseif strcmpi(constraint,'as')
+    projf = @(x) min(abs(x),absorption).*exp(1i*angle(x)).*support;
+else
+    error("Invalid constraint. Should be 'A'(absorption), 'S'(support), 'AS'(both), or 'none'.")
+end
+
+% main loop
+timer = tic;
+for iter = 1:n_iters
+
+    % print status
+    fprintf('iter: %4d / %4d \n', iter, n_iters);
+    
+    % gradient update
+    u = A(z_est);
+    u = 1/2 * AH((abs(u) - sqrt(y)) .* exp(1i*angle(u)));
+    u = z_est - gam * u;
+    
+    % proximal update
+    v_est(:) = 0; w_est(:) = 0;
+    for subiter = 1:n_subiters
+        w_next = v_est + 1/8/gam*Df(projf(u));
+        w_next = min(abs(w_next),lam).*exp(1i*angle(w_next));
+        v_est = w_next + subiter/(subiter+3)*(w_next-w_est);
+        w_est = w_next;
+    end
+    x_next = projf(u - gam*DTf(w_est));
+    
+    % Nesterov extrapolation
+    z_est = x_next + (iter/(iter+3))*(x_next - x_est);
+    x_est = x_next;
+end
+
+% wait for GPU
+if gpu; wait(device); end
+toc(timer)
+
+% gather data from GPU
+if gpu
+    x_est   = gather(x_est);
+    y       = gather(y);
+    H_f     = gather(H_f);
+    H_b     = gather(H_b);
+    support = gather(support);
+%     reset(device);
+end
 
 %%
 % =========================================================================
@@ -125,17 +187,6 @@ subplot(1,2,1),imshow(abs(x_crop),[]);colorbar
 title('Retrieved amplitude','interpreter','latex','fontsize',14)
 subplot(1,2,2),imshow(angle(x_crop),[]);colorbar
 title('Retrieved phase','interpreter','latex','fontsize',14)
-
-% visualize the convergence curves
-figure,plot(0:n_iters,E_vals,'linewidth',1.5);
-xlabel('Iteration')
-ylabel('Error metric')
-set(gca,'fontsize',14)
-
-figure,plot(0:n_iters,J_vals,'linewidth',1.5);
-xlabel('Iteration')
-ylabel('Objective value')
-set(gca,'fontsize',14)
 
 %%
 % =========================================================================
@@ -197,4 +248,66 @@ function u = zeropad(x,padsize)
 % Output:   - u        : Zero-padded image.
 % =========================================================================
 u = padarray(x,[padsize,padsize],0);
+end
+
+
+function H = transfunc(nx, ny, dist, pxsize, wavlen, method)
+% =========================================================================
+% Calculate the transfer function of the free-space diffraction.
+% -------------------------------------------------------------------------
+% Input:    - nx, ny   : The image dimensions.
+%           - dist     : Propagation distance.
+%           - pxsize   : Pixel (sampling) size.
+%           - wavlen   : Wavelength of the light.
+%           - method   : Numerical method ('Fresnel' or 'Angular Spectrum').
+% Output:   - H        : Transfer function.
+% =========================================================================
+
+% sampling in the spatial frequency domain
+kx = pi/pxsize*(-1:2/nx:1-2/nx);
+ky = pi/pxsize*(-1:2/ny:1-2/ny);
+[KX,KY] = meshgrid(kx,ky);
+
+k = 2*pi/wavlen;    % wave number
+
+ind = (KX.^2 + KY.^2 >= k^2);  % remove evanescent orders
+KX(ind) = 0; KY(ind) = 0;
+
+if strcmp(method,'Fresnel')
+    H = exp(1i*k*dist)*exp(-1i*dist*(KX.^2+KY.^2)/2/k);
+elseif strcmp(method,'Angular Spectrum')
+    H = exp(1i*dist*sqrt(k^2-KX.^2-KY.^2));
+else
+    errordlg('Wrong parameter for [method]: must be <Angular Spectrum> or <Fresnel>','Error');
+end
+end
+
+
+function w = Df(x)
+% =========================================================================
+% Calculate the 2D gradient (finite difference) of an input image.
+% -------------------------------------------------------------------------
+% Input:    - x  : The input 2D image.
+% Output:   - w  : The gradient (3D array).
+% =========================================================================
+w = cat(3,x(1:end,:) - x([2:end,end],:),x(:,1:end) - x(:,[2:end,end]));
+end
+
+
+function u = DTf(w)
+% =========================================================================
+% Calculate the transpose of the gradient operator.
+% -------------------------------------------------------------------------
+% Input:    - w  : 3D array.
+% Output:   - x  : 2D array.
+% =========================================================================
+u1 = w(:,:,1) - w([end,1:end-1],:,1);
+u1(1,:) = w(1,:,1);
+u1(end,:) = -w(end-1,:,1);
+
+u2 = w(:,:,2) - w(:,[end,1:end-1],2);
+u2(:,1) = w(:,1,2);
+u2(:,end) = -w(:,end-1,2);
+
+u = u1 + u2;
 end

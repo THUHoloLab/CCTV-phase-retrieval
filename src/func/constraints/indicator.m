@@ -1,4 +1,10 @@
 function val = indicator(x)
+% =========================================================================
+% Calculate the indicator function of the constraint set.
+% -------------------------------------------------------------------------
+% Input:    - x   : The complex-valued 2D transmittance of the sample.
+% Output:   - val : The function value.
+% =========================================================================
 
 global constraint
 global absorption

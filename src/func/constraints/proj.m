@@ -1,4 +1,10 @@
 function y = proj(x)
+% =========================================================================
+% Calculate the projection operator onto the constraint set.
+% -------------------------------------------------------------------------
+% Input:    - x : The 2D image to be projected.
+% Output:   - y : Projection of x onto the constraint set.
+% =========================================================================
 
 global constraint
 global absorption
