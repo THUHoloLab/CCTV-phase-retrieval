@@ -19,7 +19,7 @@ Matlab 2019a or newer. Older visions may be sufficient but have not been tested.
 ## Accelerated implementations
 The basic demo codes provide intuitive and proof-of-concept implementations for beginners, but are far from efficient. To facilitate faster reconstruction, we provide an optimized version based on CPU or GPU, which can be found at [`demo_sim_fast.m`](https://github.com/THUHoloLab/CCTV-phase-retrieval/blob/master/main/demo_sim_fast.m) and [`demo_exp_fast.m`](https://github.com/THUHoloLab/CCTV-phase-retrieval/blob/master/main/demo_exp_fast.m). Figure 2 and Table 1 show the runtime (200 iterations) for different image dimensions. The results are obtained using a laptop computer with Intel&reg; Core&trade; i7-12700H (2.30 GHz) CPU and Nvidia GeForce RTX&trade; 3060 GPU.
 
-<p align="center">
+<center>
 
 |  Image dimension    | CPU runtime (s) | GPU runtime (s) |
 |  :----:             | :----:          | :----:          |
@@ -28,7 +28,7 @@ The basic demo codes provide intuitive and proof-of-concept implementations for 
 |  512 $\times$ 512   | 8.76            | 1.25            |
 |  1024 $\times$ 1024 | 31.8            | 3.67            |
 |  2048 $\times$ 2048 | 130.8           | 13.2            |
-</p>
+</center>
 <p align="center"> <strong>Table 1</strong>. Runtimes (for 200 iterations) using GPU and CPU for different image dimensions.</p>
 
 
