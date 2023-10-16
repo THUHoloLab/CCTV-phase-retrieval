@@ -28,7 +28,6 @@ The basic demo codes provide intuitive and proof-of-concept implementations for 
 |  512 $\times$ 512   | 8.76            | 1.25            |
 |  1024 $\times$ 1024 | 31.8            | 3.67            |
 |  2048 $\times$ 2048 | 130.8           | 13.2            |
-
 </p>
 <p align="center"> <strong>Table 1</strong>. Runtimes (for 200 iterations) using GPU and CPU for different image dimensions.</p>
 
