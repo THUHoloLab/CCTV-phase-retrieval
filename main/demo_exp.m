@@ -43,7 +43,7 @@ if rem(size(temp,2),2) == 1
 end
 close
 y = imcrop(y,rect);
-[N1,N2] = size(y);
+[n1,n2] = size(y);
 
 % calculation of padding sizes to avoid circular boundary artifact
 kernelsize  = params.dist*params.wavlen/params.pxsize/2;
@@ -65,30 +65,32 @@ clear functions     % release memory (if using puma)
 
 % define the constraint
 global constraint
-constraint = 'as';  % 'none': no constraint, 'a': absorption constraint only, 
+constraint = 'a';   % 'none': no constraint, 'a': absorption constraint only, 
                     % 's': support constraint only, 'as': absorption + support constraints
 global absorption   % define the upper bound for the modulus
-absorption = 1;
+absorption = 1.1;
 global support      % define the support region
-support = zeros(N1+nullpixels*2,N2+nullpixels*2);
-support(nullpixels+1:nullpixels+N1,nullpixels+1:nullpixels+N2) = 1;
+support = zeros(n1+nullpixels*2,n2+nullpixels*2);
+support(nullpixels+1:nullpixels+n1,nullpixels+1:nullpixels+n2) = 1;
 
 % region for computing the errors
 region.x1 = nullpixels+1;
-region.x2 = nullpixels+N1;
+region.x2 = nullpixels+n1;
 region.y1 = nullpixels+1;
-region.y2 = nullpixels+N2;
+region.y2 = nullpixels+n2;
 
 % algorithm settings
 x_init = AH(sqrt(y));   % initial guess
 lam = 1e-2;             % regularization parameter
-gamma = 2;              % step size
+gam = 2;                % step size
 n_iters    = 500;       % number of iterations (main loop)
 n_subiters = 7;         % number of iterations (denoising)
 
 % options
 opts.verbose = true;
 opts.errfunc = nan;
+opts.display = true;
+opts.autosave = false;
 
 % building block
 myF     = @(x) F(x,y,A);                            % fidelity function 
@@ -97,14 +99,14 @@ myR     = @(x) CCTV(x,lam);                         % regularization function
 myproxR = @(x,gamma) prox(x,gamma,lam,n_subiters);  % proximal operator for the regularization function
 
 % run the algorithm
-[x_est,J_vals,E_vals,runtimes] = APG(x_init,myF,mydF,myR,myproxR,gamma,n_iters,opts);   % accelerated proximal gradient algorithm
+[x_est,J_vals,E_vals,runtimes] = APG(x_init,myF,mydF,myR,myproxR,gam,n_iters,opts);   % accelerated proximal gradient algorithm
 
 
 %%
 % =========================================================================
 % Display results
 % =========================================================================
-x_crop = x_est(nullpixels+1:nullpixels+N1,nullpixels+1:nullpixels+N2);
+x_crop = x_est(nullpixels+1:nullpixels+n1,nullpixels+1:nullpixels+n2);
 amp_est = abs(x_crop);
 pha_est = puma_ho(angle(x_crop),1);
 
@@ -125,35 +127,55 @@ function v = F(x,y,A)
 % =========================================================================
 % Data-fidelity function.
 % -------------------------------------------------------------------------
-% Input:    - x : The complex-valued image.
-% Output:   - v : Value of the fidelity function.
+% Input:    - x   : The complex-valued transmittance of the sample.
+%           - y   : Intensity image.
+%           - A   : The sampling operator.
+% Output:   - v   : Value of the fidelity function.
 % =========================================================================
 v = 1/2 * norm2(abs(A(x)) - sqrt(y))^2;
 
-function n = norm2(x)
+function n = norm2(x)   % calculate the l2 vector norm
 n = norm(x(:),2);
 end
 
 end
 
+
 function g = dF(x,y,A,AH)
 % =========================================================================
-% Wirtinger gradient of the data-fidelity function.
+% Gradient of the data-fidelity function.
 % -------------------------------------------------------------------------
-% Input:    - x : The 3D complex-valued spatiotemporal datacube.
-% Output:   - g : Wirtinger gradient.
+% Input:    - x   : The complex-valued transmittance of the sample.
+%           - y   : Intensity image.
+%           - A   : The sampling operator.
+%           - AH  : Hermitian of A.
+% Output:   - g   : Wirtinger gradient.
 % =========================================================================
-g = NaN(size(x));
-    u = A(x);
-    u = (abs(u) - sqrt(y)) .* exp(1i*angle(u));
-    g = 1/2 * AH(u);
+u = A(x);
+u = (abs(u) - sqrt(y)) .* exp(1i*angle(u));
+g = 1/2 * AH(u);
 end
 
 
 function u = imgcrop(x,cropsize)
+% =========================================================================
+% Crop the central part of the image.
+% -------------------------------------------------------------------------
+% Input:    - x        : Original image.
+%           - cropsize : Cropping pixel number along each dimension.
+% Output:   - u        : Cropped image.
+% =========================================================================
 u = x(cropsize+1:end-cropsize,cropsize+1:end-cropsize);
 end
 
+
 function u = zeropad(x,padsize)
+% =========================================================================
+% Zero-pad the image.
+% -------------------------------------------------------------------------
+% Input:    - x        : Original image.
+%           - padsize  : Padding pixel number along each dimension.
+% Output:   - u        : Zero-padded image.
+% =========================================================================
 u = padarray(x,[padsize,padsize],0);
 end

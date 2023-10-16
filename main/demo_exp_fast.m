@@ -9,37 +9,45 @@
 %     regularization: towards practical single-shot quantitative phase 
 %     imaging with in-line holography," Light: Advanced Manufacturing 4, 
 %     6 (2023).
-% 
+%
 % Author: Yunhui Gao (gyh21@mails.tsinghua.edu.cn)
 % =========================================================================
 %%
 % =========================================================================
 % Data generation
 % =========================================================================
-clear;clc
-close all
+clear;clc;
+close all;
 
-% load test image
-n = 256;
-img = imresize(im2double(imread('../data/simulation/cameraman.bmp')),[n,n]);
+% load experimental data
+group_num = 1;
+img_bg  = im2double(rgb2gray(imread(['../data/experiment/E',num2str(group_num),'/bg.bmp'])));
+img_obj = im2double(rgb2gray(imread(['../data/experiment/E',num2str(group_num),'/obj.bmp'])));
+load(['../data/experiment/E',num2str(group_num),'/params.mat'])
 
-% sample
-x = exp(1i*pi*img);
+% normalization of the hologram
+y = img_obj./mean(img_bg(:));
 
-% physical parameters
-params.pxsize = 5e-3;                   % pixel size (mm)
-params.wavlen = 0.5e-3;                 % wavelength (mm)
-params.method = 'Angular Spectrum';     % numerical method
-params.dist   = 5;                      % imaging distance (mm)
+% select area of interest for reconstruction
+figure
+[temp,rect] = imcrop(img_obj);
+if rem(size(temp,1),2) == 1
+    rect(4) = rect(4) - 1;
+end
+if rem(size(temp,2),2) == 1
+    rect(3) = rect(3) - 1;
+end
+close
+y = imcrop(y,rect);
+[n1,n2] = size(y);
 
-% zero-pad the object to avoid convolution artifacts
-kernelsize = params.dist*params.wavlen/params.pxsize/2; % diffraction kernel size
-nullpixels = ceil(kernelsize / params.pxsize);          % number of padding pixels
-x = zeropad(x,nullpixels);                              % zero-padded sample
+% calculation of padding sizes to avoid circular boundary artifact
+kernelsize  = params.dist*params.wavlen/params.pxsize/2;
+nullpixels = ceil(kernelsize / params.pxsize);
 
 % pre-calculate the transfer functions for diffraction modeling
-H_f = fftshift(transfunc(size(x,1),size(x,2), params.dist,params.pxsize,params.wavlen,params.method)); % forward propagation
-H_b = fftshift(transfunc(size(x,1),size(x,2),-params.dist,params.pxsize,params.wavlen,params.method)); % backward propagation
+H_f = fftshift(transfunc(n2+nullpixels*2,n1+nullpixels*2, params.dist,params.pxsize,params.wavlen,params.method)); % forward propagation
+H_b = fftshift(transfunc(n2+nullpixels*2,n1+nullpixels*2,-params.dist,params.pxsize,params.wavlen,params.method)); % backward propagation
 
 % forward model
 Q  = @(x) ifft2(fft2(x).*H_f);      % forward propagation
@@ -49,50 +57,27 @@ CT = @(x) zeropad(x,nullpixels);    % transpose of C: zero-padding operation
 A  = @(x) C(Q(x));                  % overall sampling operation
 AH = @(x) QH(CT(x));                % Hermitian of A
 
-% generate data
-rng(0)                                  % random seed, for reproducibility
-noisevar = 0.01;                        % noise level
-y = abs(A(x)).^2;                       % intensity measurement
-y = y.*(1 + noisevar*randn(size(y)));   % add noise
-
-% display
-figure
-set(gcf,'unit','normalized','Position',[0.15,0.3,0.7,0.4])
-subplot(1,3,1),imshow(abs(x),[]);colorbar;
-title('Amplitude of the object','interpreter','latex','fontsize',12)
-subplot(1,3,2),imshow(angle(x),[]);colorbar;
-title('Phase of the object','interpreter','latex','fontsize',12)
-subplot(1,3,3),imshow(y,[]);colorbar;
-title('Intensity measurement','interpreter','latex','fontsize',12)
-
 %%
 % =========================================================================
 % Compressive phase retrieval algorithm
 % =========================================================================
-
 clear functions     % release memory (if using puma)
 
-gpu = false;         % whether using GPU or not
+gpu = false;        % whether using GPU or not
 
 % define the constraint
-constraint = 'as';          % 'none': no constraint, 'a': absorption constraint only, 
+constraint = 'a';           % 'none': no constraint, 'a': absorption constraint only, 
                             % 's': support constraint only, 'as': absorption + support constraints
-absorption = 1;             % define the upper bound for the modulus
-support = zeros(size(x));   % define the support region
-support(nullpixels+1:nullpixels+n,nullpixels+1:nullpixels+n) = 1;
-
-% region for computing the errors
-region.x1 = nullpixels+1;
-region.x2 = nullpixels+n;
-region.y1 = nullpixels+1;
-region.y2 = nullpixels+n;
+absorption = 1.1;           % define the upper bound for the modulus
+support = zeros(n1+nullpixels*2,n2+nullpixels*2);   % define the support region
+support(nullpixels+1:nullpixels+n1,nullpixels+1:nullpixels+n2) = 1;
 
 % algorithm settings
 x_est = AH(sqrt(y));    % initial guess
-lam = 2e-3;             % regularization parameter
-gam = 2;                % step size (see the paper for details)
-n_iters    = 200;       % number of iterations (main loop)
-n_subiters = 1;         % number of iterations (denoising)
+lam = 1e-2;             % regularization parameter
+gam = 2;                % step size
+n_iters    = 500;       % number of iterations (main loop)
+n_subiters = 7;         % number of iterations (denoising)
 
 % auxilary variables
 z_est = x_est;
@@ -170,16 +155,16 @@ end
 % =========================================================================
 % Display results
 % =========================================================================
-
-% crop image to match the size of the sensor
-x_crop = x_est(nullpixels+1:nullpixels+n,nullpixels+1:nullpixels+n);
+x_crop = x_est(nullpixels+1:nullpixels+n1,nullpixels+1:nullpixels+n2);
+amp_est = abs(x_crop);
+pha_est = puma_ho(angle(x_crop),1);
 
 % visualize the reconstructed image
 figure
 set(gcf,'unit','normalized','position',[0.2,0.3,0.6,0.4])
-subplot(1,2,1),imshow(abs(x_crop),[]);colorbar
+subplot(1,2,1),imshow(amp_est,[]);colorbar
 title('Retrieved amplitude','interpreter','latex','fontsize',14)
-subplot(1,2,2),imshow(angle(x_crop),[]);colorbar
+subplot(1,2,2),imshow(pha_est,[]);colorbar
 title('Retrieved phase','interpreter','latex','fontsize',14)
 
 %%

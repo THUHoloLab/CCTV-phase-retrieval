@@ -24,7 +24,7 @@ addpath(genpath('./utils'))
 addpath(genpath('../src'))
 
 % load test image
-n = 1024;
+n = 256;
 img = imresize(im2double(imread('../data/simulation/cameraman.bmp')),[n,n]);
 
 % sample
@@ -34,7 +34,7 @@ x = exp(1i*pi*img);
 params.pxsize = 5e-3;                   % pixel size (mm)
 params.wavlen = 0.5e-3;                 % wavelength (mm)
 params.method = 'Angular Spectrum';     % numerical method
-params.dist   = 20;                     % imaging distance (mm)
+params.dist   = 5;                     % imaging distance (mm)
 
 % zero-pad the object to avoid convolution artifacts
 kernelsize = params.dist*params.wavlen/params.pxsize/2; % diffraction kernel size
@@ -92,8 +92,7 @@ region.y2 = nullpixels+n;
 x_init = AH(sqrt(y));   % initial guess
 lam = 2e-3;             % regularization parameter
 gam = 2;                % step size (see the paper for details)
-
-n_iters    = 300;       % number of iterations (main loop)
+n_iters    = 500;       % number of iterations (main loop)
 n_subiters = 1;         % number of iterations (denoising)
 
 % options
