@@ -19,6 +19,9 @@
 clear;clc;
 close all;
 
+% load functions
+addpath(genpath('./utils'))
+
 % load experimental data
 group_num = 1;
 img_bg  = im2double(rgb2gray(imread(['../data/experiment/E',num2str(group_num),'/bg.bmp'])));

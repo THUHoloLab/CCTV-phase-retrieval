@@ -19,6 +19,9 @@
 clear;clc
 close all
 
+% load functions
+addpath(genpath('./utils'))
+
 % load test image
 n = 256;
 img = imresize(im2double(imread('../data/simulation/cameraman.bmp')),[n,n]);
