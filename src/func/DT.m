@@ -3,7 +3,7 @@ function u = DT(w)
 % Calculate the transpose of the gradient operator (D).
 % -------------------------------------------------------------------------
 % Input:    - w  : 3D array.
-% Output:   - x  : 2D array.
+% Output:   - u  : 2D array.
 % =========================================================================
 
 [n1,n2,~] = size(w);

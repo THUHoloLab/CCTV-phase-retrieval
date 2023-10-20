@@ -41,8 +41,8 @@ nullpixels = ceil(kernelsize / params.pxsize);          % number of padding pixe
 x = zeropad(x,nullpixels);                              % zero-padded sample
 
 % pre-calculate the transfer functions for diffraction modeling
-H_f = fftshift(transfunc(size(x,1),size(x,2), params.dist,params.pxsize,params.wavlen,params.method)); % forward propagation
-H_b = fftshift(transfunc(size(x,1),size(x,2),-params.dist,params.pxsize,params.wavlen,params.method)); % backward propagation
+H_f = fftshift(transfunc(size(x,2),size(x,1), params.dist,params.pxsize,params.wavlen,params.method)); % forward propagation
+H_b = fftshift(transfunc(size(x,2),size(x,1),-params.dist,params.pxsize,params.wavlen,params.method)); % backward propagation
 
 % forward model
 Q  = @(x) ifft2(fft2(x).*H_f);      % forward propagation
@@ -72,8 +72,6 @@ title('Intensity measurement','interpreter','latex','fontsize',12)
 % =========================================================================
 % Compressive phase retrieval algorithm
 % =========================================================================
-
-clear functions     % release memory (if using puma)
 
 gpu = false;         % whether using GPU or not
 
