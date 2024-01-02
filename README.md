@@ -58,7 +58,7 @@ For algorithm derivation and implementation details, please refer to our paper:
   journal={Light: Advanced Manufacturing},
   volume={4},
   number={1},
-  pages={1--17},
+  pages={37--53},
   year={2023},
   publisher={Light: Advanced Manufacturing}
 }
