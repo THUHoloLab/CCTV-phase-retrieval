@@ -34,7 +34,7 @@ x = exp(1i*pi*img);
 params.pxsize = 5e-3;                   % pixel size (mm)
 params.wavlen = 0.5e-3;                 % wavelength (mm)
 params.method = 'Angular Spectrum';     % numerical method
-params.dist   = 5;                     % imaging distance (mm)
+params.dist   = 5;                      % imaging distance (mm)
 
 % zero-pad the object to avoid convolution artifacts
 kernelsize = params.dist*params.wavlen/params.pxsize/2; % diffraction kernel size
