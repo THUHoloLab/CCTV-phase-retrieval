@@ -46,7 +46,8 @@ Table 1 and Figure 2 show the runtime (200 iterations) for different image dimen
 ## Theories and References
 For algorithm derivation and implementation details, please refer to our paper:
 
-- Yunhui Gao and Liangcai Cao, "Iterative projection meets sparsity regularization: towards practical single-shot quantitative phase imaging with in-line holography," Light: Advanced Manufacturing 4, 6 (2023). [Publication](https://www.light-am.com/article/doi/10.37188/lam.2023.006) | <a href="https://github.com/THUHoloLab/CCTV-phase-retrieval/blob/master/docs/lam-4-1-37-supplement.pdf" target="_blank">PDF.</a>
+- Yunhui Gao and Liangcai Cao, "Iterative projection meets sparsity regularization: towards practical single-shot quantitative phase imaging with in-line holography," Light: Advanced Manufacturing 4(1), 37-53 (2023). 
+[Publication page](https://www.light-am.com/article/doi/10.37188/lam.2023.006) | [Paper (PDF)](https://github.com/THUHoloLab/CCTV-phase-retrieval/blob/master/docs/lam-4-1-37.pdf) | [Supplement (PDF)](https://github.com/THUHoloLab/CCTV-phase-retrieval/blob/master/docs/lam-4-1-37-supplement.pdf)
 
 
 ## Citation
