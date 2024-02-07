@@ -6,7 +6,7 @@ Authors: **[Yunhui Gao](https://github.com/Yunhui-Gao)** (gyh21@mails.tsinghua.e
 _______
 
 <p align="left">
-<img src="docs/diagram.png">
+<img src="imgs/diagram.png">
 </p>
 
 <p align="left"> <strong>Figure 1</strong>. Overview of the proposed method. (a) Schematic of the in-line holographic imaging system. (b) Captured raw hologram of a transparent Fresnel zone plate. Scale bar 1 mm. (c) Retrieved phase distribution. (d) Rendered surface height profile.</p>
@@ -38,7 +38,7 @@ Table 1 and Figure 2 show the runtime (200 iterations) for different image dimen
 
 
 <p align="left">
-<img src="docs/runtime.png" style="height: 300px;">
+<img src="imgs/runtime.png" style="height: 300px;">
 </p>
 
 <p align="left"> <strong>Figure 2</strong>. Runtimes (for 200 iterations) using GPU and CPU for different image dimensions.</p>
